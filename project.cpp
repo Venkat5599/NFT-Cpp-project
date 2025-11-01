@@ -2,86 +2,107 @@
 #include <string>
 using namespace std;
 
-// Encapsulation 
-class Product {
+// ENCAPSULATION: Data hiding with private members
+// The NFT class encapsulates data (name, collection, price, quantity)
+// and provides controlled access through public methods (input, getTotal, getCollection)
+class NFT {
 private:
     string name;
-    string category;
+    string collection;
     double price;
-    int qty;
+    int quantity;
 
 public:
     void input() {
-        cout << "Name: ";
+        cout << "NFT Name: ";
         cin >> name;
-        cout << "Category: ";
-        cin >> category;
-        cout << "Price: ";
+        cout << "Collection: ";
+        cin >> collection;
+        cout << "Price (ETH): ";
         cin >> price;
-        cout << "Qty: ";
-        cin >> qty;
+        cout << "Quantity: ";
+        cin >> quantity;
     }
 
-    double getTotal() { return price * qty; }
-    string getCategory() { return category; }
+    // Encapsulation: getters provide controlled access to private data
+    double getTotal() { return price * quantity; }
+    string getCollection() { return collection; }
 };
 
-// Abstraction & Polymorphism 
+// ABSTRACTION: Abstract base class defines interface
+// The Discount class is abstract (has pure virtual function)
+// It hides the implementation details of different discount types
+// Child classes must implement the calculate() method
 class Discount {
 public:
-    virtual double calculate(Product cart[], int n, double total, bool member, string bank) = 0;
+    virtual double calculate(NFT cart[], int n, double total, bool member, string bank) = 0;
 };
 
-//  Inheritance: Different discounts 
+// INHERITANCE: Different discount types inherit from base Discount class
+// Each class extends the Discount base class and implements its own calculate logic
+
+// POLYMORPHISM: SeasonalDiscount overrides the virtual calculate method
+// Provides 10% discount on "Limited Edition" NFTs
 class SeasonalDiscount : public Discount {
 public:
-    double calculate(Product cart[], int n, double total, bool member, string bank) {
+    double calculate(NFT cart[], int n, double total, bool member, string bank) {
         double sum = 0;
         for(int i=0;i<n;i++)
-            if(cart[i].getCategory() == "Clothing")
+            if(cart[i].getCollection() == "Limited Edition")
                 sum += cart[i].getTotal();
-        return sum * 10 / 100;  // 10% Clothing
+        return sum * 10 / 100;  // 10% Limited Edition NFTs
     }
 };
 
+// POLYMORPHISM: LoyaltyDiscount overrides the virtual calculate method
+// Provides 5% discount if user is a loyalty member
 class LoyaltyDiscount : public Discount {
 public:
-    double calculate(Product cart[], int n, double total, bool member, string bank) {
+    double calculate(NFT cart[], int n, double total, bool member, string bank) {
         return member ? total * 5 / 100 : 0; // 5% for members
     }
 };
 
+// POLYMORPHISM: BulkDiscount overrides the virtual calculate method
+// Provides 0.5 ETH discount for purchases >= 5 ETH
 class BulkDiscount : public Discount {
 public:
-    double calculate(Product cart[], int n, double total, bool member, string bank) {
-        return total >= 1000 ? 100 : 0; // Rs 100 off above 1000
+    double calculate(NFT cart[], int n, double total, bool member, string bank) {
+        return total >= 5 ? 0.5 : 0; // 0.5 ETH off for 5+ ETH
     }
 };
 
+// POLYMORPHISM: BankDiscount overrides the virtual calculate method
+// Provides up to 2 ETH discount (15% cap) for ABC bank
 class BankDiscount : public Discount {
 public:
-    double calculate(Product cart[], int n, double total, bool member, string bank) {
+    double calculate(NFT cart[], int n, double total, bool member, string bank) {
         if(bank != "ABC") return 0;
         double d = total * 15 / 100;
-        return d > 500 ? 500 : d; // max 500
+        return d > 2 ? 2 : d; // max 2 ETH discount
     }
 };
 
-//  Cart with Encapsulation 
+// ENCAPSULATION: Cart class hides internal cart array
+// Private members: cart array and count
+// Public methods provide controlled access to add NFTs and get totals
 class Cart {
 private:
-    Product cart[50];
+    NFT cart[50];
     int count;
 
 public:
+    // Constructor: Initializes the cart
     Cart() { count = 0; }
 
-    void addProduct() {
-        cout << "\nEnter product details:\n";
+    // Method to add NFT to cart
+    void addNFT() {
+        cout << "\nEnter NFT details:\n";
         cart[count].input();
         count++;
     }
 
+    // Encapsulation: Getter method for total
     double getOriginalTotal() {
         double sum = 0;
         for(int i=0;i<count;i++)
@@ -89,19 +110,22 @@ public:
         return sum;
     }
 
-    Product* getCart() { return cart; }
+    // Encapsulation: Getter methods provide controlled access
+    NFT* getCart() { return cart; }
     int getCount() { return count; }
 };
 
-//  Main 
+// POLYMORPHISM IN ACTION: Main function demonstrates polymorphism
+// Base class pointer (Discount*) can point to any derived class object
+// Virtual function calculate() is called based on the actual object type
 int main() {
     Cart cart;
     int n;
-    cout << "How many products? ";
+    cout << "How many NFTs to add? ";
     cin >> n;
 
     for(int i=0;i<n;i++)
-        cart.addProduct();
+        cart.addNFT();
 
     char ch;
     cout << "\nLoyalty member? (y/n): ";
@@ -114,13 +138,19 @@ int main() {
 
     double total = cart.getOriginalTotal();
 
-    // Polymorphism: base pointer multiple child objs
+    // POLYMORPHISM: Array of base class pointers
+    // Each pointer can hold address of any derived class object
+    // The correct calculate() method is called at runtime (Dynamic Polymorphism)
     Discount* discounts[4];
     discounts[0] = new SeasonalDiscount();
     discounts[1] = new LoyaltyDiscount();
     discounts[2] = new BulkDiscount();
     discounts[3] = new BankDiscount();
 
+    // POLYMORPHISM: Virtual function call
+    // Even though discounts[i] is a Discount pointer,
+    // the actual calculate() method of the derived class is called
+    // This is Runtime (Dynamic) Polymorphism
     double totalDiscount = 0;
     for(int i=0;i<4;i++)
         totalDiscount += discounts[i]->calculate(cart.getCart(), cart.getCount(), total, loyalty, bank);
@@ -128,9 +158,9 @@ int main() {
     double finalTotal = total - totalDiscount;
 
     cout << "\n-----------------------\n";
-    cout << "Original Total: " << total << endl;
-    cout << "Discount: " << totalDiscount << endl;
-    cout << "Final Total: " << finalTotal << endl;
+    cout << "Original Total: " << total << " ETH" << endl;
+    cout << "Discount: " << totalDiscount << " ETH" << endl;
+    cout << "Final Total: " << finalTotal << " ETH" << endl;
     cout << "-----------------------\n";
 
     return 0;
